@@ -7,7 +7,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 export const buscarClientes = async (servicio: Servicio, sector: string, ubicacion: string): Promise<ClientePotencial[]> => {
   try {
     const prompt = `
-    Busca 20 clientes potenciales. Tu objetivo es encontrar empresas reales y activas del sector '${sector}' en '${ubicacion}' que se beneficiarían de mi servicio: '${servicio.nombre}'.
+    Busca 50 clientes potenciales. Tu objetivo es encontrar empresas reales y activas del sector '${sector}' en '${ubicacion}' que se beneficiarían de mi servicio: '${servicio.nombre}'.
 
     Para cada empresa, utiliza Google Search para buscar en LinkedIn y encontrar el perfil de un gerente, director o un tomador de decisiones relevante. Es CRÍTICO que obtengas la dirección de correo electrónico de contacto de esta persona.
 
