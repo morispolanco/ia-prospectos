@@ -20,6 +20,7 @@ export interface ClientePotencial {
     email: string;
   };
   analisisNecesidad: string;
+  probabilidadContratacion: number;
 }
 
 export interface EmailGenerado {

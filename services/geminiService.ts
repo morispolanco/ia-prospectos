@@ -20,7 +20,8 @@ export const buscarClientes = async (servicio: Servicio, sector: string, ubicaci
         "cargo": "string (Cargo exacto del contacto, ej: 'Gerente de Marketing')",
         "email": "string (Email de contacto VÁLIDO Y OBLIGATORIO)"
       },
-      "analisisNecesidad": "string (Análisis breve y específico de por qué esta empresa, basado en su perfil, necesitaría el servicio '${servicio.nombre}')"
+      "analisisNecesidad": "string (Análisis breve y específico de por qué esta empresa, basado en su perfil, necesitaría el servicio '${servicio.nombre}')",
+      "probabilidadContratacion": "number (un puntaje de 0 a 100 que representa la probabilidad de que esta empresa contrate el servicio. Basa este puntaje en el 'analisisNecesidad' y el perfil de la empresa.)"
     }
 
     Asegúrate de que la respuesta sea un JSON puro. No incluyas marcadores como \`\`\`json.
