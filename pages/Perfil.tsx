@@ -6,14 +6,34 @@ export const Perfil: React.FC = () => {
   const { perfil, setPerfil } = useAppContext();
   const [formData, setFormData] = useState(perfil);
   const [saved, setSaved] = useState(false);
+  const [emailError, setEmailError] = useState('');
+
+  const validateEmail = (email: string): boolean => {
+    if (!email) return true; // Don't show error for empty field until submit
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    if (name === 'email') {
+      if (!validateEmail(value)) {
+        setEmailError('Por favor, introduce un formato de email válido.');
+      } else {
+        setEmailError('');
+      }
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateEmail(formData.email) || !formData.email) {
+      setEmailError('Por favor, introduce un formato de email válido.');
+      return;
+    }
+    
     setPerfil(formData);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -54,10 +74,11 @@ export const Perfil: React.FC = () => {
               id="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className={`w-full px-4 py-2 border rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 ${emailError ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
               placeholder="Ej: juan.perez@tuempresa.com"
               required
             />
+            {emailError && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{emailError}</p>}
           </div>
           <div>
             <label htmlFor="paginaWeb" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -80,7 +101,8 @@ export const Perfil: React.FC = () => {
             )}
             <button
               type="submit"
-              className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+              disabled={!!emailError}
+              className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               Guardar Cambios
             </button>
