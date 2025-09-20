@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import type { EmailGenerado } from '../types';
@@ -48,9 +47,73 @@ const EmailCard: React.FC<{ email: EmailGenerado }> = ({ email }) => {
 export const Emails: React.FC = () => {
   const { emails } = useAppContext();
 
+  const escapeCsvCell = (cellData: string) => {
+    // Check if the cellData is a string before calling includes
+    const strCellData = String(cellData || '');
+    if (strCellData.includes('"') || strCellData.includes(',') || strCellData.includes('\n')) {
+      return `"${strCellData.replace(/"/g, '""')}"`;
+    }
+    return strCellData;
+  };
+
+  const handleExportToCSV = () => {
+    if (emails.length === 0) return;
+
+    const headers = [
+      'Fecha',
+      'Empresa',
+      'Nombre Contacto',
+      'Email Contacto',
+      'Servicio Ofrecido',
+      'Asunto',
+      'Cuerpo del Email'
+    ];
+
+    const rows = emails.map(email => {
+      try {
+        const { asunto, cuerpo } = JSON.parse(email.cuerpo);
+        return [
+          new Date(email.fecha).toLocaleString('es-ES'),
+          email.destinatario.nombreEmpresa,
+          email.destinatario.contacto.nombre,
+          email.destinatario.contacto.email,
+          email.servicio.nombre,
+          asunto,
+          cuerpo
+        ].map(escapeCsvCell).join(',');
+      } catch (e) {
+        console.error("Error parsing email body for CSV export:", e);
+        return ''; // Return empty row on error
+      }
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.filter(row => row) // Filter out empty rows from parsing errors
+    ].join('\n');
+
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `export_emails_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+
   return (
     <div className="container mx-auto p-6">
-      <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-6">Emails Generados</h2>
+       <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold text-gray-800 dark:text-white">Emails Generados</h2>
+        <button
+          onClick={handleExportToCSV}
+          disabled={emails.length === 0}
+          className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+        >
+          Exportar a Excel (.csv)
+        </button>
+      </div>
       {emails.length > 0 ? (
         <div className="space-y-6">
           {emails.map(email => (

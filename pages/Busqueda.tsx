@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { buscarClientes, generarEmail } from '../services/geminiService';
@@ -143,12 +142,14 @@ const ClientCard: React.FC<{ cliente: ClientePotencial; servicio: Servicio; onGe
 
 
 export const Busqueda: React.FC = () => {
-  const { servicios, perfil } = useAppContext();
+  const { servicios, perfil, addEmail } = useAppContext();
   const [filtros, setFiltros] = useState({ servicioId: '', sector: '', ubicacion: '' });
   const [resultados, setResultados] = useState<ClientePotencial[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedClient, setSelectedClient] = useState<ClientePotencial | null>(null);
+  const [isBulkGenerating, setIsBulkGenerating] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState('');
 
   const isFormValid = filtros.servicioId && filtros.sector && filtros.ubicacion && perfil.nombre;
 
@@ -167,7 +168,9 @@ export const Busqueda: React.FC = () => {
     if (servicioSeleccionado) {
       try {
         const clientes = await buscarClientes(servicioSeleccionado, filtros.sector, filtros.ubicacion);
-        setResultados(clientes);
+        // Sort results by potential score in descending order
+        const clientesOrdenados = clientes.sort((a, b) => b.probabilidadContratacion - a.probabilidadContratacion);
+        setResultados(clientesOrdenados);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido al buscar clientes.');
       } finally {
@@ -177,6 +180,45 @@ export const Busqueda: React.FC = () => {
   };
 
   const selectedServicio = servicios.find(s => s.id === filtros.servicioId);
+
+  const handleGenerateAllEmails = async () => {
+    if (!selectedServicio || !perfil.nombre || !resultados.length) return;
+
+    setIsBulkGenerating(true);
+    setBulkMessage('Iniciando generación masiva...');
+    
+    const generationPromises = resultados.map(cliente => 
+      generarEmail(cliente, selectedServicio, perfil)
+        .then(emailJson => ({ status: 'fulfilled', value: { emailJson, cliente } }))
+        .catch(error => ({ status: 'rejected', reason: error, cliente }))
+    );
+    
+    // Using a sequential approach to avoid rate-limiting issues and provide better feedback
+    let successCount = 0;
+    let errorCount = 0;
+    for (let i = 0; i < resultados.length; i++) {
+        const cliente = resultados[i];
+        setBulkMessage(`Generando email ${i + 1} de ${resultados.length} para ${cliente.nombreEmpresa}...`);
+        try {
+            const emailJson = await generarEmail(cliente, selectedServicio, perfil);
+            const parsedEmail = JSON.parse(emailJson);
+            addEmail({
+                destinatario: cliente,
+                servicio: selectedServicio,
+                cuerpo: JSON.stringify(parsedEmail),
+            });
+            successCount++;
+        } catch(error) {
+            console.error("Error generating email for:", cliente.nombreEmpresa, error);
+            errorCount++;
+        }
+    }
+
+    setBulkMessage(`${successCount} de ${resultados.length} emails generados y guardados. ${errorCount > 0 ? `${errorCount} fallaron.` : ''}`);
+    setIsBulkGenerating(false);
+    
+    setTimeout(() => setBulkMessage(''), 5000); // Clear message after 5 seconds
+  };
 
   return (
     <div className="container mx-auto p-6">
@@ -210,7 +252,17 @@ export const Busqueda: React.FC = () => {
 
       {resultados.length > 0 && (
         <div>
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">Resultados de la Búsqueda</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Resultados de la Búsqueda</h2>
+              <button
+                onClick={handleGenerateAllEmails}
+                disabled={isBulkGenerating || isLoading}
+                className="px-4 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                {isBulkGenerating ? 'Generando...' : 'Generar y Guardar Todos'}
+              </button>
+            </div>
+             {bulkMessage && <p className="text-center text-blue-600 dark:text-blue-400 mb-4">{bulkMessage}</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {resultados.map((cliente, index) => (
                 <ClientCard 
