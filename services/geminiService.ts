@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import type { PerfilUsuario, Servicio, ClientePotencial } from '../types';
 
@@ -9,21 +10,30 @@ export const buscarClientes = async (servicio: Servicio, sector: string, ubicaci
     const systemInstruction = "Eres una API de búsqueda de prospectos B2B. Tu única función es devolver datos en formato JSON. Nunca incluyas texto explicativo, saludos o cualquier otra cosa fuera del JSON solicitado.";
 
     const prompt = `
-    Realiza una búsqueda para encontrar 50 clientes potenciales del sector '${sector}' en '${ubicacion}' que necesiten el servicio: '${servicio.nombre}'.
+    Realiza una búsqueda para encontrar hasta 10 clientes potenciales del sector '${sector}' en '${ubicacion}' que necesiten el servicio: '${servicio.nombre}'.
 
     REGLAS ESTRICTAS:
-    1.  FILTRADO OBLIGATORIO: Devuelve ÚNICAMENTE prospectos con una 'probabilidadContratacion' superior a 80.
-    2.  CONTACTO VÁLIDO: Para cada empresa, usa Google Search para encontrar un gerente o director en LinkedIn y obtén su email de contacto. Este campo es OBLIGATORIO.
+    1.  FILTRADO OBLIGATORIO: Devuelve ÚNICAMENTE prospectos con una 'probabilidadContratacion' superior a 90.
+    2.  DATOS COMPLETOS: Para cada empresa, usa Google Search para encontrar la siguiente información. Todos los campos son OBLIGATORIOS.
+        - Un contacto relevante (gerente, director) con su nombre, cargo y email.
+        - El número de teléfono de la empresa.
+        - La dirección completa de la oficina principal.
+        - Una calificación promedio y el número de reseñas (si están disponibles en fuentes como Google Maps). Si no hay, usa 0.
     3.  ORDEN: Ordena el resultado final de mayor a menor 'probabilidadContratacion'.
     4.  FORMATO DE SALIDA: Tu respuesta DEBE ser EXCLUSIVAMENTE un array JSON válido. No añadas texto introductorio, explicaciones, ni marcadores de código como \`\`\`json. La respuesta debe empezar con '[' y terminar con ']'.
 
     La estructura de cada objeto JSON debe ser:
     {
+      "id": "string (un UUID v4 único para cada prospecto)",
       "nombreEmpresa": "string",
       "paginaWeb": "string",
-      "contacto": { "nombre": "string", "cargo": "string", "email": "string" },
-      "analisisNecesidad": "string",
-      "probabilidadContratacion": "number (entre 81 y 100)"
+      "contacto": { "nombre": "string", "cargo": "string", "email": "string", "telefono": "string" },
+      "ubicacion": "string (ciudad/país, ej: '${ubicacion}')",
+      "sector": "string (ej: '${sector}')",
+      "direccionCompleta": "string",
+      "analisisNecesidad": "string (un análisis breve de por qué necesitan el servicio)",
+      "probabilidadContratacion": "number (entre 91 y 100)",
+      "calificacion": { "puntuacion": "number", "reseñas": "number" }
     }
     `;
 
@@ -38,7 +48,6 @@ export const buscarClientes = async (servicio: Servicio, sector: string, ubicaci
 
     let jsonText = response.text.trim();
     
-    // Make parsing more robust: find the first '[' and last ']'
     const startIndex = jsonText.indexOf('[');
     const endIndex = jsonText.lastIndexOf(']');
     
@@ -69,12 +78,18 @@ export const generarEmail = async (cliente: ClientePotencial, servicio: Servicio
     const systemInstruction = "Eres una API de redacción de correos. Tu única función es devolver un objeto JSON con las claves 'asunto' y 'cuerpo'. Nunca escribas nada fuera del objeto JSON.";
 
     const prompt = `
-    Tu tarea es redactar un borrador de correo electrónico B2B en español.
+    Tu tarea es redactar un borrador de correo electrónico B2B altamente personalizado en español.
+
+    **PASO 1: INVESTIGACIÓN**
+    Usa Google Search para investigar a la empresa '${cliente.nombreEmpresa}' (sitio web: ${cliente.paginaWeb}). Busca noticias recientes, publicaciones de blog, o secciones de 'sobre nosotros' para entender sus objetivos, desafíos o proyectos actuales. Tu meta es encontrar un "gancho" o necesidad específica que no esté explícitamente en el análisis previo.
+
+    **PASO 2: REDACCIÓN DEL CORREO**
+    Basado en tu investigación y la información proporcionada, redacta el correo.
 
     **Información del destinatario:**
     - Empresa: ${cliente.nombreEmpresa}
     - Contacto: ${cliente.contacto.nombre} (${cliente.contacto.cargo})
-    - Análisis de su necesidad: ${cliente.analisisNecesidad}
+    - Análisis previo de su necesidad: ${cliente.analisisNecesidad}
 
     **Información del remitente (mi perfil):**
     - Nombre: ${perfil.nombre}
@@ -84,21 +99,21 @@ export const generarEmail = async (cliente: ClientePotencial, servicio: Servicio
     - Descripción del servicio: ${servicio.descripcion}
 
     **REGLAS ESTRICTAS PARA EL CORREO:**
-    1.  **Asunto:** Corto, intrigante y personalizado (ej: "Idea para ${cliente.nombreEmpresa}").
+    1.  **Asunto:** Corto, intrigante y muy personalizado, haciendo referencia a tu investigación. (ej: "Sobre [tema encontrado en investigación] en ${cliente.nombreEmpresa}").
     2.  **Cuerpo:**
-        -   Saludo: "Estimado/a ${cliente.contacto.nombre}:" (con dos puntos).
-        -   Introducción: Demuestra que conoces su empresa y su necesidad específica.
-        -   Solución: Presenta tu servicio ('${servicio.nombre}') como la solución a esa necesidad.
-        -   Llamada a la acción: Clara y de bajo compromiso (ej: "¿Tendría 15 minutos la próxima semana para una breve llamada?").
+        -   Saludo: "Estimado/a ${cliente.contacto.nombre}:".
+        -   Introducción (Párrafo 1): Comienza mencionando algo específico que encontraste en tu investigación. Demuestra que has hecho tu tarea. Por ejemplo: "He seguido de cerca el lanzamiento de [producto/iniciativa] y estoy impresionado con..."
+        -   Conexión y Solución (Párrafo 2): Conecta tu hallazgo con una posible necesidad o desafío que ellos puedan tener, y presenta tu servicio ('${servicio.nombre}') como la solución directa a ESE problema específico. Sé muy concreto. Por ejemplo: "Dado su enfoque en [objetivo de la empresa], he pensado que la gestión de [área relacionada con tu servicio] podría ser un desafío. Nuestro servicio, [nombre del servicio], ayuda a empresas como la suya a [beneficio clave relacionado con su necesidad]".
+        -   Llamada a la acción (Párrafo 3): Clara y de bajo compromiso (ej: "¿Le parecería bien una breve llamada de 15 minutos la próxima semana para explorar cómo podríamos ayudarles?").
         -   Despedida: "Atentamente," seguido de tu nombre (${perfil.nombre}).
     
     **FORMATO DE SALIDA OBLIGATORIO:**
     Tu respuesta DEBE ser EXCLUSIVAMENTE un objeto JSON válido. No incluyas texto, explicaciones o marcadores de formato. La respuesta debe empezar con '{' y terminar con '}'.
     
-    Ejemplo de salida:
+    La estructura JSON debe ser:
     {
-      "asunto": "Un asunto de ejemplo",
-      "cuerpo": "El cuerpo del correo electrónico aquí."
+      "asunto": "string",
+      "cuerpo": "string"
     }
     `;
 
@@ -107,13 +122,12 @@ export const generarEmail = async (cliente: ClientePotencial, servicio: Servicio
         contents: prompt,
         config: {
             systemInstruction: systemInstruction,
-            responseMimeType: "application/json",
+            tools: [{googleSearch: {}}],
         }
     });
     
     let jsonText = response.text.trim();
     
-    // Robust parsing for an object, as a fallback
     const startIndex = jsonText.indexOf('{');
     const endIndex = jsonText.lastIndexOf('}');
 
