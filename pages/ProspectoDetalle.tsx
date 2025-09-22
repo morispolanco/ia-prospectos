@@ -3,7 +3,6 @@ import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { generarEmail } from '../services/geminiService';
-import { createGmailDraft } from '../services/gmailService';
 import type { ClientePotencial, Servicio, LlamadaRegistrada } from '../types';
 import { Spinner } from '../components/Spinner';
 
@@ -64,13 +63,10 @@ const EmailModal: React.FC<{
   cliente: ClientePotencial;
   servicio: Servicio;
 }> = ({ isOpen, onClose, cliente, servicio }) => {
-  const { perfil, addEmail, googleAccessToken } = useAppContext();
+  const { perfil, addEmail } = useAppContext();
   const [emailContent, setEmailContent] = useState({ asunto: '', cuerpo: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isCreatingDraft, setIsCreatingDraft] = useState(false);
-  const [draftStatus, setDraftStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [draftError, setDraftError] = useState('');
 
   const handleGenerateEmail = async () => {
     setIsLoading(true);
@@ -94,32 +90,6 @@ const EmailModal: React.FC<{
     });
     onClose();
   };
-  
-  const handleCreateDraft = async () => {
-    if (!googleAccessToken) return;
-    setIsCreatingDraft(true);
-    setDraftStatus('idle');
-    setDraftError('');
-    try {
-        await createGmailDraft(
-            googleAccessToken,
-            cliente.contacto.email,
-            emailContent.asunto,
-            emailContent.cuerpo
-        );
-        setDraftStatus('success');
-        setTimeout(() => {
-            onClose();
-            setDraftStatus('idle');
-        }, 3000);
-    } catch(err) {
-        setDraftStatus('error');
-        setDraftError(err instanceof Error ? err.message : 'Error desconocido al crear el borrador.');
-    } finally {
-        setIsCreatingDraft(false);
-    }
-  };
-
 
   React.useEffect(() => {
     // Reset state when modal opens for a new client
@@ -127,9 +97,6 @@ const EmailModal: React.FC<{
         setEmailContent({ asunto: '', cuerpo: '' });
         setError('');
         setIsLoading(false);
-        setDraftStatus('idle');
-        setIsCreatingDraft(false);
-        setDraftError('');
     }
   }, [isOpen]);
 
@@ -165,20 +132,9 @@ const EmailModal: React.FC<{
             </div>
           )}
         </div>
-        <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700 flex justify-between items-center">
-            <div className="min-h-[24px]">
-                {draftStatus === 'success' && <p className="text-green-600">¡Borrador creado en Gmail con éxito!</p>}
-                {draftStatus === 'error' && <p className="text-red-500">{draftError}</p>}
-            </div>
-            <div className="flex gap-4">
-              <button onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Cancelar</button>
-              {googleAccessToken && (
-                 <button onClick={handleCreateDraft} disabled={!emailContent.cuerpo || isLoading || isCreatingDraft} className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
-                    {isCreatingDraft ? 'Creando...' : 'Crear Borrador en Gmail'}
-                 </button>
-              )}
-              <button onClick={handleSaveEmail} disabled={!emailContent.cuerpo || isLoading} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">Guardar Email</button>
-            </div>
+        <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700 flex justify-end gap-4">
+          <button onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Cancelar</button>
+          <button onClick={handleSaveEmail} disabled={!emailContent.cuerpo || isLoading} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">Guardar Email</button>
         </div>
       </div>
     </div>

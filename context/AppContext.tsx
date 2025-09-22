@@ -7,7 +7,6 @@ interface AppContextType {
   emails: EmailGenerado[];
   prospectos: ClientePotencial[];
   llamadas: LlamadaRegistrada[];
-  googleAccessToken: string | null;
   setPerfil: (perfil: PerfilUsuario) => void;
   addServicio: (servicio: Omit<Servicio, 'id'>) => void;
   removeServicio: (id: string) => void;
@@ -17,7 +16,6 @@ interface AppContextType {
   removeProspectos: (prospectoIds: string[]) => void;
   getProspectoById: (id: string) => ClientePotencial | undefined;
   addLlamada: (llamada: Omit<LlamadaRegistrada, 'id' | 'fecha'>) => void;
-  setGoogleAccessToken: (token: string | null) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -38,7 +36,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [emails, setEmails] = useState<EmailGenerado[]>(() => getInitialState<EmailGenerado[]>('emails', []));
   const [prospectos, setProspectosState] = useState<ClientePotencial[]>(() => getInitialState<ClientePotencial[]>('prospectos', []));
   const [llamadas, setLlamadas] = useState<LlamadaRegistrada[]>(() => getInitialState<LlamadaRegistrada[]>('llamadas', []));
-  const [googleAccessToken, setGoogleAccessTokenState] = useState<string | null>(() => getInitialState<string | null>('googleAccessToken', null));
 
 
   useEffect(() => {
@@ -60,14 +57,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     localStorage.setItem('llamadas', JSON.stringify(llamadas));
   }, [llamadas]);
-
-  useEffect(() => {
-    if (googleAccessToken) {
-        localStorage.setItem('googleAccessToken', JSON.stringify(googleAccessToken));
-    } else {
-        localStorage.removeItem('googleAccessToken');
-    }
-  }, [googleAccessToken]);
 
   const setPerfil = (newPerfil: PerfilUsuario) => {
     setPerfilState(newPerfil);
@@ -121,12 +110,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setLlamadas(prev => [nuevaLlamada, ...prev]);
   };
 
-  const setGoogleAccessToken = (token: string | null) => {
-    setGoogleAccessTokenState(token);
-  };
-
   return (
-    <AppContext.Provider value={{ perfil, setPerfil, servicios, addServicio, removeServicio, emails, addEmail, removeEmails, prospectos, addProspectos, removeProspectos, getProspectoById, llamadas, addLlamada, googleAccessToken, setGoogleAccessToken }}>
+    <AppContext.Provider value={{ perfil, setPerfil, servicios, addServicio, removeServicio, emails, addEmail, removeEmails, prospectos, addProspectos, removeProspectos, getProspectoById, llamadas, addLlamada }}>
       {children}
     </AppContext.Provider>
   );

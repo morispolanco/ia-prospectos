@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { generarEmail } from '../services/geminiService';
-import { createGmailDraft } from '../services/gmailService';
 import { ClientCard } from '../components/ClientCard';
 import { Spinner } from '../components/Spinner';
 
 export const Prospectos: React.FC = () => {
-    const { prospectos, removeProspectos, servicios, perfil, addEmail, googleAccessToken } = useAppContext();
+    const { prospectos, removeProspectos, servicios, perfil, addEmail } = useAppContext();
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isBulkGenerating, setIsBulkGenerating] = useState(false);
     const [bulkMessage, setBulkMessage] = useState('');
@@ -39,22 +38,18 @@ export const Prospectos: React.FC = () => {
         setSelectedIds(new Set());
     };
 
-    const runBulkGeneration = async (createDraft: boolean) => {
+    const handleGenerateSelectedEmails = async () => {
         const selectedServicio = servicios.find(s => s.id === selectedServicioId);
         if (!selectedServicio) {
-            setError('Por favor, selecciona un servicio.');
+            setError('Por favor, selecciona un servicio para generar los emails.');
             return;
         }
         if (!perfil.nombre) {
-            setError('Por favor, configura tu perfil.');
+            setError('Por favor, configura tu perfil antes de generar emails.');
             return;
         }
         if (selectedIds.size === 0) {
             setError('Por favor, selecciona al menos un prospecto.');
-            return;
-        }
-        if (createDraft && !googleAccessToken) {
-            setError('Por favor, conecta tu cuenta de Google en tu perfil para crear borradores.');
             return;
         }
         setError('');
@@ -68,16 +63,10 @@ export const Prospectos: React.FC = () => {
         let errorCount = 0;
         for (let i = 0; i < selectedProspectos.length; i++) {
             const cliente = selectedProspectos[i];
-            const actionText = createDraft ? 'borrador para' : 'email para';
-            setBulkMessage(`Generando ${actionText} ${i + 1} de ${selectedProspectos.length}: ${cliente.nombreEmpresa}...`);
+            setBulkMessage(`Generando email ${i + 1} de ${selectedProspectos.length} para ${cliente.nombreEmpresa}...`);
             try {
                 const emailJson = await generarEmail(cliente, selectedServicio, perfil);
                 const parsedEmail = JSON.parse(emailJson);
-                
-                if (createDraft && googleAccessToken) {
-                    await createGmailDraft(googleAccessToken, cliente.contacto.email, parsedEmail.asunto, parsedEmail.cuerpo);
-                }
-                
                 addEmail({
                     destinatario: cliente,
                     servicio: selectedServicio,
@@ -89,13 +78,12 @@ export const Prospectos: React.FC = () => {
                 errorCount++;
             }
         }
-        const resultText = createDraft ? 'Borradores creados' : 'Emails guardados';
-        setBulkMessage(`${successCount} de ${selectedProspectos.length} ${resultText}. ${errorCount > 0 ? `${errorCount} fallaron.` : ''}`);
+
+        setBulkMessage(`${successCount} de ${selectedProspectos.length} emails generados y guardados. ${errorCount > 0 ? `${errorCount} fallaron.` : ''}`);
         setIsBulkGenerating(false);
         
-        setTimeout(() => setBulkMessage(''), 8000);
+        setTimeout(() => setBulkMessage(''), 5000);
     };
-
 
     if (prospectos.length === 0) {
         return (
@@ -140,21 +128,12 @@ export const Prospectos: React.FC = () => {
                       {servicios.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                     </select>
                     <button
-                        onClick={() => runBulkGeneration(false)}
+                        onClick={handleGenerateSelectedEmails}
                         disabled={isBulkGenerating || selectedIds.size === 0}
                         className="px-4 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 disabled:bg-gray-400"
                     >
-                        {isBulkGenerating ? 'Generando...' : 'Generar y Guardar Emails'}
+                        {isBulkGenerating ? 'Generando...' : 'Generar Emails'}
                     </button>
-                    {googleAccessToken && (
-                        <button
-                            onClick={() => runBulkGeneration(true)}
-                            disabled={isBulkGenerating || selectedIds.size === 0}
-                            className="px-4 py-2 bg-yellow-600 text-white font-semibold rounded-md hover:bg-yellow-700 disabled:bg-gray-400"
-                        >
-                            {isBulkGenerating ? 'Generando...' : 'Generar Borradores en Gmail'}
-                        </button>
-                    )}
                     <button
                         onClick={handleRemoveSelected}
                         disabled={selectedIds.size === 0}
