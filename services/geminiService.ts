@@ -105,7 +105,10 @@ export const generarEmail = async (cliente: ClientePotencial, servicio: Servicio
         -   Introducción (Párrafo 1): Comienza mencionando algo específico que encontraste en tu investigación. Demuestra que has hecho tu tarea. Por ejemplo: "He seguido de cerca el lanzamiento de [producto/iniciativa] y estoy impresionado con..."
         -   Conexión y Solución (Párrafo 2): Conecta tu hallazgo con una posible necesidad o desafío que ellos puedan tener, y presenta tu servicio ('${servicio.nombre}') como la solución directa a ESE problema específico. Sé muy concreto. Por ejemplo: "Dado su enfoque en [objetivo de la empresa], he pensado que la gestión de [área relacionada con tu servicio] podría ser un desafío. Nuestro servicio, [nombre del servicio], ayuda a empresas como la suya a [beneficio clave relacionado con su necesidad]".
         -   Llamada a la acción (Párrafo 3): Clara y de bajo compromiso (ej: "¿Le parecería bien una breve llamada de 15 minutos la próxima semana para explorar cómo podríamos ayudarles?").
-        -   Despedida: "Atentamente," seguido de tu nombre (${perfil.nombre}).
+        -   Despedida y Firma: Finaliza el correo con "Atentamente,". Justo debajo, DEBES incluir la siguiente firma, con cada elemento en una nueva línea:
+            ${perfil.nombre}
+            ${perfil.email}
+            ${perfil.paginaWeb}
     
     **FORMATO DE SALIDA OBLIGATORIO:**
     Tu respuesta DEBE ser EXCLUSIVAMENTE un objeto JSON válido. No incluyas texto, explicaciones o marcadores de formato. La respuesta debe empezar con '{' y terminar con '}'.
