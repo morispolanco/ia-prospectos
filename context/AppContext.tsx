@@ -11,6 +11,7 @@ interface AppContextType {
   addServicio: (servicio: Omit<Servicio, 'id'>) => void;
   removeServicio: (id: string) => void;
   addEmail: (email: Omit<EmailGenerado, 'id' | 'fecha'>) => void;
+  removeEmails: (emailIds: string[]) => void;
   addProspectos: (prospectos: ClientePotencial[]) => void;
   removeProspectos: (prospectoIds: string[]) => void;
   getProspectoById: (id: string) => ClientePotencial | undefined;
@@ -78,6 +79,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     setEmails(prev => [newEmail, ...prev]);
   };
+  
+  const removeEmails = (emailIds: string[]) => {
+    setEmails(prev => prev.filter(e => !emailIds.includes(e.id)));
+  };
 
   const addProspectos = (newProspectos: ClientePotencial[]) => {
     setProspectosState(prev => {
@@ -106,7 +111,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   return (
-    <AppContext.Provider value={{ perfil, setPerfil, servicios, addServicio, removeServicio, emails, addEmail, prospectos, addProspectos, removeProspectos, getProspectoById, llamadas, addLlamada }}>
+    <AppContext.Provider value={{ perfil, setPerfil, servicios, addServicio, removeServicio, emails, addEmail, removeEmails, prospectos, addProspectos, removeProspectos, getProspectoById, llamadas, addLlamada }}>
       {children}
     </AppContext.Provider>
   );

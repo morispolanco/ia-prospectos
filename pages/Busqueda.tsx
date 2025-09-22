@@ -28,6 +28,15 @@ export const Busqueda: React.FC = () => {
     });
   };
 
+  const handleSelectAll = () => {
+    if (resultados.length === 0) return;
+    if (selectedIds.size === resultados.length) {
+        setSelectedIds(new Set());
+    } else {
+        setSelectedIds(new Set(resultados.map(p => p.id)));
+    }
+  };
+
   const handleSaveSelected = () => {
     const selectedProspectos = resultados.filter(p => selectedIds.has(p.id));
     if (selectedProspectos.length > 0) {
@@ -97,8 +106,16 @@ export const Busqueda: React.FC = () => {
       {resultados.length > 0 && (
         <div>
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-              <div className="text-lg font-semibold text-gray-800 dark:text-white">
-                  <span>{selectedIds.size} de {resultados.length} seleccionados</span>
+              <div className="flex items-center gap-4">
+                  <div className="text-lg font-semibold text-gray-800 dark:text-white">
+                      <span>{selectedIds.size} de {resultados.length} seleccionados</span>
+                  </div>
+                  <button
+                      onClick={handleSelectAll}
+                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700"
+                  >
+                      {selectedIds.size === resultados.length ? 'Deseleccionar Todos' : 'Seleccionar Todos'}
+                  </button>
               </div>
               <div>
                   <button
