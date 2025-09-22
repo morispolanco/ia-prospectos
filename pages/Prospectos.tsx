@@ -25,6 +25,14 @@ export const Prospectos: React.FC = () => {
         });
     };
 
+    const handleSelectAll = () => {
+        if (selectedIds.size === prospectos.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(prospectos.map(p => p.id)));
+        }
+    };
+
     const handleRemoveSelected = () => {
         removeProspectos(Array.from(selectedIds));
         setSelectedIds(new Set());
@@ -96,8 +104,16 @@ export const Prospectos: React.FC = () => {
             <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-6">Mis Prospectos</h2>
             
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                <div className="text-lg font-semibold text-gray-800 dark:text-white">
-                    <span>{selectedIds.size} de {prospectos.length} seleccionados</span>
+                <div className="flex items-center gap-4">
+                    <div className="text-lg font-semibold text-gray-800 dark:text-white">
+                        <span>{selectedIds.size} de {prospectos.length} seleccionados</span>
+                    </div>
+                     <button
+                        onClick={handleSelectAll}
+                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700"
+                    >
+                        {selectedIds.size === prospectos.length ? 'Deseleccionar Todos' : 'Seleccionar Todos'}
+                    </button>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     <select
