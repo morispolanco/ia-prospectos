@@ -1,58 +1,42 @@
-
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { buscarClientes, generarEmail } from '../services/geminiService';
-import type { ClientePotencial, Servicio } from '../types';
+import { buscarClientes } from '../services/geminiService';
+import type { ClientePotencial } from '../types';
 import { Spinner } from '../components/Spinner';
-
-// Client Card Component
-const ClientCard: React.FC<{ cliente: ClientePotencial; }> = ({ cliente }) => {
-  
-  const getScoreColor = (score: number) => {
-    if (score > 89) return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-    return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-  };
-  
-  return (
-    <Link to={`/prospecto/${cliente.id}`} className="block hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-      <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 flex flex-col justify-between h-full">
-        <div>
-          <div className="flex justify-between items-start mb-2">
-              <h3 className="text-xl font-bold text-blue-600 dark:text-blue-400 flex-1 pr-4">{cliente.nombreEmpresa}</h3>
-              <div className="text-center flex-shrink-0">
-                  <span className={`inline-block px-3 py-1 text-sm font-bold rounded-full ${getScoreColor(cliente.probabilidadContratacion)}`}>
-                      {cliente.probabilidadContratacion}%
-                  </span>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Potencial</p>
-              </div>
-          </div>
-          <p className="text-sm text-gray-500 hover:underline break-all">{cliente.paginaWeb}</p>
-          <div className="my-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-md">
-            <p className="font-semibold text-gray-800 dark:text-gray-200">{cliente.contacto.nombre} - <span className="font-normal">{cliente.contacto.cargo}</span></p>
-            <p className="text-gray-600 dark:text-gray-400">{cliente.contacto.email}</p>
-          </div>
-          <p className="text-gray-700 dark:text-gray-300 text-sm line-clamp-3">{cliente.analisisNecesidad}</p>
-        </div>
-        <div className="mt-4 self-start text-blue-600 font-semibold">
-          Ver Detalles &rarr;
-        </div>
-      </div>
-    </Link>
-  );
-};
-
+import { ClientCard } from '../components/ClientCard';
 
 export const Busqueda: React.FC = () => {
-  const { servicios, perfil, addEmail, setProspectos } = useAppContext();
+  const { servicios, perfil, addProspectos } = useAppContext();
   const [filtros, setFiltros] = useState({ servicioId: '', sector: '', ubicacion: '' });
   const [resultados, setResultados] = useState<ClientePotencial[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isBulkGenerating, setIsBulkGenerating] = useState(false);
-  const [bulkMessage, setBulkMessage] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [saveMessage, setSaveMessage] = useState('');
 
   const isFormValid = filtros.servicioId && filtros.sector && filtros.ubicacion && perfil.nombre;
+
+  const handleSelectProspecto = (id: string) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSaveSelected = () => {
+    const selectedProspectos = resultados.filter(p => selectedIds.has(p.id));
+    if (selectedProspectos.length > 0) {
+      addProspectos(selectedProspectos);
+      setSaveMessage(`${selectedProspectos.length} prospecto(s) guardado(s) correctamente.`);
+      setSelectedIds(new Set());
+      setTimeout(() => setSaveMessage(''), 5000);
+    }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +48,7 @@ export const Busqueda: React.FC = () => {
     setIsLoading(true);
     setError('');
     setResultados([]);
+    setSelectedIds(new Set());
 
     const servicioSeleccionado = servicios.find(s => s.id === filtros.servicioId);
     if (servicioSeleccionado) {
@@ -71,47 +56,12 @@ export const Busqueda: React.FC = () => {
         const clientes = await buscarClientes(servicioSeleccionado, filtros.sector, filtros.ubicacion);
         const clientesOrdenados = clientes.sort((a, b) => b.probabilidadContratacion - a.probabilidadContratacion);
         setResultados(clientesOrdenados);
-        setProspectos(clientesOrdenados); // Save to context
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido al buscar clientes.');
       } finally {
         setIsLoading(false);
       }
     }
-  };
-
-  const selectedServicio = servicios.find(s => s.id === filtros.servicioId);
-
-  const handleGenerateAllEmails = async () => {
-    if (!selectedServicio || !perfil.nombre || !resultados.length) return;
-
-    setIsBulkGenerating(true);
-    setBulkMessage('Iniciando generación masiva...');
-    
-    let successCount = 0;
-    let errorCount = 0;
-    for (let i = 0; i < resultados.length; i++) {
-        const cliente = resultados[i];
-        setBulkMessage(`Generando email ${i + 1} de ${resultados.length} para ${cliente.nombreEmpresa}...`);
-        try {
-            const emailJson = await generarEmail(cliente, selectedServicio, perfil);
-            const parsedEmail = JSON.parse(emailJson);
-            addEmail({
-                destinatario: cliente,
-                servicio: selectedServicio,
-                cuerpo: JSON.stringify(parsedEmail),
-            });
-            successCount++;
-        } catch(error) {
-            console.error("Error generating email for:", cliente.nombreEmpresa, error);
-            errorCount++;
-        }
-    }
-
-    setBulkMessage(`${successCount} de ${resultados.length} emails generados y guardados. ${errorCount > 0 ? `${errorCount} fallaron.` : ''}`);
-    setIsBulkGenerating(false);
-    
-    setTimeout(() => setBulkMessage(''), 5000);
   };
 
   return (
@@ -146,22 +96,28 @@ export const Busqueda: React.FC = () => {
 
       {resultados.length > 0 && (
         <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Resultados de la Búsqueda</h2>
-              <button
-                onClick={handleGenerateAllEmails}
-                disabled={isBulkGenerating || isLoading}
-                className="px-4 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-              >
-                {isBulkGenerating ? 'Generando...' : 'Generar y Guardar Todos'}
-              </button>
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+              <div className="text-lg font-semibold text-gray-800 dark:text-white">
+                  <span>{selectedIds.size} de {resultados.length} seleccionados</span>
+              </div>
+              <div>
+                  <button
+                      onClick={handleSaveSelected}
+                      disabled={selectedIds.size === 0}
+                      className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                  >
+                      Guardar en "Mis Prospectos"
+                  </button>
+              </div>
             </div>
-             {bulkMessage && <p className="text-center text-blue-600 dark:text-blue-400 mb-4">{bulkMessage}</p>}
+             {saveMessage && <p className="text-center text-green-600 dark:text-green-400 mb-4">{saveMessage}</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {resultados.map((cliente) => (
                 <ClientCard 
                   key={cliente.id} 
                   cliente={cliente} 
+                  isSelected={selectedIds.has(cliente.id)}
+                  onSelect={handleSelectProspecto}
                 />
             ))}
             </div>

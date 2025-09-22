@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
@@ -8,6 +7,7 @@ import { Servicios } from './pages/Servicios';
 import { Emails } from './pages/Emails';
 import { Perfil } from './pages/Perfil';
 import { ProspectoDetalle } from './pages/ProspectoDetalle';
+import { Prospectos } from './pages/Prospectos';
 
 const App: React.FC = () => {
   return (
@@ -19,7 +19,7 @@ const App: React.FC = () => {
             <Routes>
               <Route path="/" element={<Busqueda />} />
               <Route path="/busqueda" element={<Busqueda />} />
-              <Route path="/prospectos" element={<Busqueda />} />
+              <Route path="/prospectos" element={<Prospectos />} />
               <Route path="/prospecto/:prospectoId" element={<ProspectoDetalle />} />
               <Route path="/servicios" element={<Servicios />} />
               <Route path="/emails" element={<Emails />} />

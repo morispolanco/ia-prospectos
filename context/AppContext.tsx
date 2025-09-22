@@ -11,7 +11,8 @@ interface AppContextType {
   addServicio: (servicio: Omit<Servicio, 'id'>) => void;
   removeServicio: (id: string) => void;
   addEmail: (email: Omit<EmailGenerado, 'id' | 'fecha'>) => void;
-  setProspectos: (prospectos: ClientePotencial[]) => void;
+  addProspectos: (prospectos: ClientePotencial[]) => void;
+  removeProspectos: (prospectoIds: string[]) => void;
   getProspectoById: (id: string) => ClientePotencial | undefined;
   addLlamada: (llamada: Omit<LlamadaRegistrada, 'id' | 'fecha'>) => void;
 }
@@ -78,12 +79,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setEmails(prev => [newEmail, ...prev]);
   };
 
-  const setProspectos = (newProspectos: ClientePotencial[]) => {
+  const addProspectos = (newProspectos: ClientePotencial[]) => {
     setProspectosState(prev => {
         const prospectosMap = new Map(prev.map(p => [p.id, p]));
         newProspectos.forEach(p => prospectosMap.set(p.id, p));
         return Array.from(prospectosMap.values());
     });
+  };
+
+  const removeProspectos = (prospectoIds: string[]) => {
+    setProspectosState(prev => prev.filter(p => !prospectoIds.includes(p.id)));
   };
 
   const getProspectoById = (id: string): ClientePotencial | undefined => {
@@ -101,7 +106,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   return (
-    <AppContext.Provider value={{ perfil, setPerfil, servicios, addServicio, removeServicio, emails, addEmail, prospectos, setProspectos, getProspectoById, llamadas, addLlamada }}>
+    <AppContext.Provider value={{ perfil, setPerfil, servicios, addServicio, removeServicio, emails, addEmail, prospectos, addProspectos, removeProspectos, getProspectoById, llamadas, addLlamada }}>
       {children}
     </AppContext.Provider>
   );
