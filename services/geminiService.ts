@@ -13,7 +13,7 @@ export const buscarClientes = async (servicio: Servicio, sector: string, ubicaci
     Realiza una búsqueda para encontrar hasta 10 clientes potenciales del sector '${sector}' en '${ubicacion}' que necesiten el servicio: '${servicio.nombre}'.
 
     REGLAS ESTRICTAS:
-    1.  FILTRADO OBLIGATORIO: Devuelve ÚNICAMENTE prospectos con una 'probabilidadContratacion' superior a 90.
+    1.  FILTRADO OBLIGATORIO: Devuelve ÚNICAMENTE prospectos con una 'probabilidadContratacion' superior a 80.
     2.  DATOS COMPLETOS: Para cada empresa, usa Google Search para encontrar la siguiente información. Todos los campos son OBLIGATORIOS.
         - Un contacto relevante (gerente, director) con su nombre, cargo y email.
         - El número de teléfono de la empresa.
@@ -32,7 +32,7 @@ export const buscarClientes = async (servicio: Servicio, sector: string, ubicaci
       "sector": "string (ej: '${sector}')",
       "direccionCompleta": "string",
       "analisisNecesidad": "string (un análisis breve de por qué necesitan el servicio)",
-      "probabilidadContratacion": "number (entre 91 y 100)",
+      "probabilidadContratacion": "number (entre 81 y 100)",
       "calificacion": { "puntuacion": "number", "reseñas": "number" }
     }
     `;

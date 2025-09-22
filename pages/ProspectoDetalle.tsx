@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
@@ -26,7 +27,7 @@ const Card: React.FC<{ title: string; children: React.ReactNode; className?: str
   </div>
 );
 
-const CircularProgress: React.FC<{ percentage: number }> = ({ percentage }) => {
+const CircularProgress: React.FC<{ percentage: number; circleClassName?: string; }> = ({ percentage, circleClassName = "text-green-500" }) => {
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percentage / 100) * circumference;
@@ -36,7 +37,7 @@ const CircularProgress: React.FC<{ percentage: number }> = ({ percentage }) => {
       <svg className="w-full h-full" viewBox="0 0 120 120">
         <circle className="text-gray-200 dark:text-gray-700" strokeWidth="12" stroke="currentColor" fill="transparent" r={radius} cx="60" cy="60" />
         <circle
-          className="text-green-500"
+          className={circleClassName}
           strokeWidth="12"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
@@ -241,6 +242,23 @@ export const ProspectoDetalle: React.FC = () => {
         return <div className="text-center p-10">Prospecto no encontrado. <button onClick={() => navigate('/')} className="text-blue-600">Volver a la búsqueda</button></div>;
     }
 
+    const getProbabilidadInfo = (percentage: number) => {
+        if (percentage > 89) {
+            return {
+                texto: 'Probabilidad Alta',
+                colorClass: 'text-green-600 dark:text-green-400',
+                circleClass: 'text-green-500'
+            };
+        }
+        return {
+            texto: 'Probabilidad Media',
+            colorClass: 'text-yellow-600 dark:text-yellow-400',
+            circleClass: 'text-yellow-500'
+        };
+    };
+
+    const probabilidadInfo = getProbabilidadInfo(prospecto.probabilidadContratacion);
+    
     const getResultadoColor = (resultado: LlamadaRegistrada['resultado']) => {
         switch (resultado) {
           case 'Interesado': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
@@ -358,8 +376,8 @@ export const ProspectoDetalle: React.FC = () => {
             </div>
             <div className="lg:col-span-1 space-y-6">
                 <Card title="Probabilidad de Contratación" className="flex flex-col items-center">
-                    <CircularProgress percentage={prospecto.probabilidadContratacion} />
-                    <p className="mt-4 font-semibold text-green-600 dark:text-green-400">Probabilidad Alta</p>
+                    <CircularProgress percentage={prospecto.probabilidadContratacion} circleClassName={probabilidadInfo.circleClass} />
+                    <p className={`mt-4 font-semibold ${probabilidadInfo.colorClass}`}>{probabilidadInfo.texto}</p>
                 </Card>
                 <Card title="Calificación del Negocio">
                     <div className="flex flex-col items-center text-center">
