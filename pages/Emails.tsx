@@ -4,7 +4,16 @@ import type { EmailGenerado } from '../types';
 
 const EmailCard: React.FC<{ email: EmailGenerado; isSelected: boolean; onSelect: (id: string) => void; }> = ({ email, isSelected, onSelect }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const { asunto, cuerpo } = JSON.parse(email.cuerpo);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(cuerpo).then(() => {
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    });
+  };
 
   return (
     <div className={`bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden transition-all duration-300 relative ${isSelected ? 'ring-2 ring-blue-500' : 'hover:shadow-xl'}`}>
@@ -51,7 +60,22 @@ const EmailCard: React.FC<{ email: EmailGenerado; isSelected: boolean; onSelect:
           <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
             <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Servicio Ofrecido:</h4>
             <p className="text-gray-600 dark:text-gray-400 mb-4">{email.servicio.nombre}</p>
-            <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Cuerpo del Email:</h4>
+            <div className="flex justify-between items-center mb-2">
+                <h4 className="font-semibold text-gray-700 dark:text-gray-300">Cuerpo del Email:</h4>
+                <button onClick={handleCopy} className="px-3 py-1 text-xs font-semibold rounded-md flex items-center transition-colors bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
+                    {isCopied ? (
+                        <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                            ¡Copiado!
+                        </>
+                    ) : (
+                        <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                            Copiar
+                        </>
+                    )}
+                </button>
+            </div>
             <div className="prose prose-sm dark:prose-invert max-w-none p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md">
               <pre className="whitespace-pre-wrap font-sans">{cuerpo}</pre>
             </div>

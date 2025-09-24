@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
@@ -67,6 +66,7 @@ const EmailModal: React.FC<{
   const [emailContent, setEmailContent] = useState({ asunto: '', cuerpo: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
 
   const handleGenerateEmail = async () => {
     setIsLoading(true);
@@ -91,12 +91,20 @@ const EmailModal: React.FC<{
     onClose();
   };
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(emailContent.cuerpo).then(() => {
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+    });
+  };
+
   React.useEffect(() => {
     // Reset state when modal opens for a new client
     if (isOpen) {
         setEmailContent({ asunto: '', cuerpo: '' });
         setError('');
         setIsLoading(false);
+        setIsCopied(false);
     }
   }, [isOpen]);
 
@@ -121,7 +129,22 @@ const EmailModal: React.FC<{
                 <input type="text" value={emailContent.asunto} onChange={(e) => setEmailContent(prev => ({ ...prev, asunto: e.target.value }))} className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
               </div>
               <div>
-                <label className="font-semibold text-gray-700 dark:text-gray-300">Cuerpo:</label>
+                <div className="flex justify-between items-center">
+                  <label className="font-semibold text-gray-700 dark:text-gray-300">Cuerpo:</label>
+                  <button onClick={handleCopy} className="px-3 py-1 text-xs font-semibold rounded-md flex items-center transition-colors bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
+                    {isCopied ? (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                        ¡Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        Copiar
+                      </>
+                    )}
+                  </button>
+                </div>
                 <textarea value={emailContent.cuerpo} onChange={(e) => setEmailContent(prev => ({ ...prev, cuerpo: e.target.value }))} rows={12} className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-sm" />
               </div>
             </div>
