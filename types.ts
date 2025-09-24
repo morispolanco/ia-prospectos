@@ -29,6 +29,7 @@ export interface ClientePotencial {
     puntuacion: number;
     reseñas: number;
   };
+  fechaAgregado: string;
 }
 
 export interface EmailGenerado {
@@ -45,4 +46,10 @@ export interface LlamadaRegistrada {
   fecha: string; // ISO string date
   resultado: 'Interesado' | 'No Interesado' | 'Buzón de voz' | 'Seguimiento' | 'Contacto realizado' | 'Otro';
   notas: string;
+}
+
+export interface User {
+  id: string;
+  nombre: string;
+  email: string;
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { generarEmail } from '../services/geminiService';
@@ -12,6 +12,49 @@ export const Prospectos: React.FC = () => {
     const [bulkMessage, setBulkMessage] = useState('');
     const [selectedServicioId, setSelectedServicioId] = useState<string>('');
     const [error, setError] = useState('');
+    const [filters, setFilters] = useState({ sector: '', ubicacion: '' });
+    const [sortBy, setSortBy] = useState('probabilidad'); // 'probabilidad', 'nombre', 'fecha'
+
+    const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFilters(prev => ({ ...prev, [name]: value }));
+    };
+
+    const filteredAndSortedProspectos = useMemo(() => {
+        let displayedProspectos = [...prospectos];
+
+        if (filters.sector.trim()) {
+            displayedProspectos = displayedProspectos.filter(p =>
+                p.sector.toLowerCase().includes(filters.sector.toLowerCase().trim())
+            );
+        }
+        if (filters.ubicacion.trim()) {
+            displayedProspectos = displayedProspectos.filter(p =>
+                p.ubicacion.toLowerCase().includes(filters.ubicacion.toLowerCase().trim())
+            );
+        }
+
+        const sorted = [...displayedProspectos];
+        switch (sortBy) {
+            case 'nombre':
+                sorted.sort((a, b) => a.nombreEmpresa.localeCompare(b.nombreEmpresa));
+                break;
+            case 'fecha':
+                sorted.sort((a, b) => new Date(b.fechaAgregado).getTime() - new Date(a.fechaAgregado).getTime());
+                break;
+            case 'probabilidad':
+            default:
+                sorted.sort((a, b) => b.probabilidadContratacion - a.probabilidadContratacion);
+                break;
+        }
+
+        return sorted;
+    }, [prospectos, filters, sortBy]);
+
+    const areAllVisibleSelected = useMemo(() => 
+        filteredAndSortedProspectos.length > 0 && filteredAndSortedProspectos.every(p => selectedIds.has(p.id)),
+        [filteredAndSortedProspectos, selectedIds]
+    );
 
     const handleSelectProspecto = (id: string) => {
         setSelectedIds(prev => {
@@ -26,10 +69,15 @@ export const Prospectos: React.FC = () => {
     };
 
     const handleSelectAll = () => {
-        if (selectedIds.size === prospectos.length) {
-            setSelectedIds(new Set());
+        const allVisibleIds = new Set(filteredAndSortedProspectos.map(p => p.id));
+        if (areAllVisibleSelected) {
+            setSelectedIds(prev => {
+                const newSet = new Set(prev);
+                allVisibleIds.forEach(id => newSet.delete(id));
+                return newSet;
+            });
         } else {
-            setSelectedIds(new Set(prospectos.map(p => p.id)));
+            setSelectedIds(prev => new Set([...Array.from(prev), ...allVisibleIds]));
         }
     };
 
@@ -103,16 +151,59 @@ export const Prospectos: React.FC = () => {
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
             <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-6">Mis Prospectos</h2>
             
+            <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg shadow-sm">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label htmlFor="sector" className="sr-only">Filtrar por Sector</label>
+                        <input
+                            type="text"
+                            id="sector"
+                            name="sector"
+                            value={filters.sector}
+                            onChange={handleFilterChange}
+                            placeholder="Filtrar por sector..."
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="ubicacion" className="sr-only">Filtrar por Ubicación</label>
+                        <input
+                            type="text"
+                            id="ubicacion"
+                            name="ubicacion"
+                            value={filters.ubicacion}
+                            onChange={handleFilterChange}
+                            placeholder="Filtrar por ubicación..."
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="sortBy" className="sr-only">Ordenar por</label>
+                        <select
+                            id="sortBy"
+                            value={sortBy}
+                            onChange={e => setSortBy(e.target.value)}
+                            className="w-full h-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        >
+                            <option value="probabilidad">Ordenar por Potencial (Mayor a menor)</option>
+                            <option value="nombre">Ordenar por Nombre (A-Z)</option>
+                            <option value="fecha">Ordenar por Fecha (Recientes primero)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
                 <div className="flex items-center gap-4">
                     <div className="text-lg font-semibold text-gray-800 dark:text-white">
                         <span>{selectedIds.size} de {prospectos.length} seleccionados</span>
+                         <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">({filteredAndSortedProspectos.length} visibles)</span>
                     </div>
                      <button
                         onClick={handleSelectAll}
                         className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700"
                     >
-                        {selectedIds.size === prospectos.length ? 'Deseleccionar Todos' : 'Seleccionar Todos'}
+                        {areAllVisibleSelected ? 'Deseleccionar Visibles' : 'Seleccionar Visibles'}
                     </button>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -150,16 +241,24 @@ export const Prospectos: React.FC = () => {
 
 
             {!isBulkGenerating && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {prospectos.map((cliente) => (
-                        <ClientCard 
-                            key={cliente.id} 
-                            cliente={cliente}
-                            isSelected={selectedIds.has(cliente.id)}
-                            onSelect={handleSelectProspecto}
-                        />
-                    ))}
-                </div>
+                <>
+                    {filteredAndSortedProspectos.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredAndSortedProspectos.map((cliente) => (
+                                <ClientCard 
+                                    key={cliente.id} 
+                                    cliente={cliente}
+                                    isSelected={selectedIds.has(cliente.id)}
+                                    onSelect={handleSelectProspecto}
+                                />
+                            ))}
+                        </div>
+                     ) : (
+                        <div className="text-center bg-white dark:bg-gray-800 p-10 rounded-lg shadow-md">
+                            <p className="text-gray-500 dark:text-gray-400">No se encontraron prospectos que coincidan con tus filtros.</p>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

@@ -34,7 +34,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [perfil, setPerfilState] = useState<PerfilUsuario>(() => getInitialState<PerfilUsuario>('perfil', { nombre: '', email: '', paginaWeb: '' }));
   const [servicios, setServicios] = useState<Servicio[]>(() => getInitialState<Servicio[]>('servicios', []));
   const [emails, setEmails] = useState<EmailGenerado[]>(() => getInitialState<EmailGenerado[]>('emails', []));
-  const [prospectos, setProspectosState] = useState<ClientePotencial[]>(() => getInitialState<ClientePotencial[]>('prospectos', []));
+  const [prospectos, setProspectosState] = useState<ClientePotencial[]>(() => {
+    const initialProspectos = getInitialState<ClientePotencial[]>('prospectos', []);
+    // Data migration for old items that might not have fechaAgregado
+    return initialProspectos.map(p => ({
+      ...p,
+      fechaAgregado: p.fechaAgregado || new Date(0).toISOString() // Default to a very old date for sorting purposes
+    }));
+  });
   const [llamadas, setLlamadas] = useState<LlamadaRegistrada[]>(() => getInitialState<LlamadaRegistrada[]>('llamadas', []));
 
 
@@ -87,7 +94,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addProspectos = (newProspectos: ClientePotencial[]) => {
     setProspectosState(prev => {
         const prospectosMap = new Map(prev.map(p => [p.id, p]));
-        newProspectos.forEach(p => prospectosMap.set(p.id, p));
+        const now = new Date().toISOString();
+        newProspectos.forEach(p => {
+            const existingProspecto = prospectosMap.get(p.id);
+            // Add the prospect with a new date if it's new, or keep the existing date if it's an update.
+            prospectosMap.set(p.id, {
+                ...p,
+                // FIX: Cast existingProspecto to ClientePotencial to fix type inference issue.
+                fechaAgregado: (existingProspecto as ClientePotencial)?.fechaAgregado || now,
+            });
+        });
         return Array.from(prospectosMap.values());
     });
   };

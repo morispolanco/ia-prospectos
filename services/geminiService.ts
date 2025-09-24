@@ -19,7 +19,7 @@ export const buscarClientes = async (servicio: Servicio, sector: string, ubicaci
         - El número de teléfono de la empresa.
         - La dirección completa de la oficina principal.
         - Una calificación promedio y el número de reseñas (si están disponibles en fuentes como Google Maps). Si no hay, usa 0.
-    3.  BÚSQUEDA DE CONTACTOS: Para encontrar los contactos más relevantes y actuales, busca en múltiples fuentes, no solo LinkedIn. Considera Google Maps, redes sociales de la empresa, y directorios profesionales (ej: colegios de abogados, médicos, etc.). El objetivo es encontrar a la persona con mayor probabilidad de contratar el servicio.
+    3.  BÚSQUEDA DE CONTACTOS: Para encontrar los contactos más relevantes y actuales, busca en múltiples fuentes, no solo LinkedIn. Considera Google Maps, redes sociales de la empresa, y directorios profesionales (ej: colegios de abogados, médicos, etc.). El objetivo es encontrar a la persona con mayor probabilidad de contratar el servicio. IMPORTANTE: Ignora y descarta cualquier correo electrónico que comience con 'info'.
     4.  ORDEN: Ordena el resultado final de mayor a menor 'probabilidadContratacion'.
     5.  FORMATO DE SALIDA: Tu respuesta DEBE ser EXCLUSIVAMENTE un array JSON válido. No añadas texto introductorio, explicaciones, ni marcadores de código como \`\`\`json. La respuesta debe empezar con '[' y terminar con ']'.
 
